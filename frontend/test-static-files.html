@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Static File Serving</title>
+</head>
+<body>
+    <h1>Backend Static File Serving Test</h1>
+    
+    <div id="results"></div>
+    
+    <script>
+        const baseUrl = 'http://127.0.0.1:8000';
+        const resultsDiv = document.getElementById('results');
+        
+        async function testEndpoint(url, description) {
+            try {
+                const response = await fetch(url);
+                const resultDiv = document.createElement('div');
+                resultDiv.style.padding = '10px';
+                resultDiv.style.margin = '5px';
+                resultDiv.style.border = response.ok ? '2px solid green' : '2px solid red';
+                
+                resultDiv.innerHTML = `
+                    <h3>${description}</h3>
+                    <p><strong>URL:</strong> <code>${url}</code></p>
+                    <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                    <p><strong>Headers:</strong> ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}</p>
+                `;
+                
+                resultsDiv.appendChild(resultDiv);
+                console.log(`${description}:`, response.status, response.statusText);
+                
+                if (response.ok) {
+                    console.log('✅', description, 'is accessible');
+                } else {
+                    console.log('❌', description, 'is not accessible');
+                }
+                
+            } catch (error) {
+                const resultDiv = document.createElement('div');
+                resultDiv.style.padding = '10px';
+                resultDiv.style.margin = '5px';
+                resultDiv.style.border = '2px solid red';
+                
+                resultDiv.innerHTML = `
+                    <h3>${description}</h3>
+                    <p><strong>URL:</strong> <code>${url}</code></p>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+                
+                resultsDiv.appendChild(resultDiv);
+                console.error('❌', description, 'error:', error);
+            }
+        }
+        
+        // Test various endpoints
+        async function runTests() {
+            console.log('🧪 Testing backend static file serving...');
+            
+            await testEndpoint(`${baseUrl}/api/health`, 'API Health Check');
+            await testEndpoint(`${baseUrl}/uploads/`, 'Uploads Directory');
+            await testEndpoint(`${baseUrl}/uploads/profiles/`, 'Profiles Directory');
+            await testEndpoint(`${baseUrl}/uploads/chat/`, 'Chat Directory');
+            
+            // Test with a fake file to see how 404s are handled
+            await testEndpoint(`${baseUrl}/uploads/profiles/nonexistent.jpg`, 'Non-existent Image');
+            
+            console.log('🏁 Tests completed');
+        }
+        
+        runTests();
+        
+        // Add a file input to test actual uploads
+        const uploadDiv = document.createElement('div');
+        uploadDiv.innerHTML = `
+            <h3>Test File Upload</h3>
+            <input type="file" id="fileInput" accept="image/*" />
+            <button onclick="testUpload()">Upload Test Image</button>
+            <div id="uploadResult"></div>
+        `;
+        resultsDiv.appendChild(uploadDiv);
+        
+        async function testUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a file first');
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('avatar', file);
+                
+                const token = localStorage.getItem('chitchat_auth_token');
+                if (!token) {
+                    alert('Please login first to test upload');
+                    return;
+                }
+                
+                const response = await fetch(`${baseUrl}/api/upload/profile`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                const resultDiv = document.getElementById('uploadResult');
+                resultDiv.innerHTML = `
+                    <h4>Upload Result</h4>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Response:</strong> <pre>${JSON.stringify(result, null, 2)}</pre></p>
+                    ${result.imageUrl ? `<img src="${result.imageUrl}" style="max-width: 200px;" />` : ''}
+                `;
+                
+                console.log('📤 Upload result:', result);
+                
+                // Test if the uploaded image is accessible
+                if (result.imageUrl) {
+                    setTimeout(() => {
+                        testEndpoint(result.imageUrl, 'Uploaded Image');
+                    }, 1000);
+                }
+                
+            } catch (error) {
+                console.error('❌ Upload error:', error);
+                document.getElementById('uploadResult').innerHTML = `<p style="color: red;">Upload failed: ${error.message}</p>`;
+            }
+        }
+        
+        // Make testUpload available globally
+        window.testUpload = testUpload;
+    </script>
+</body>
+</html>

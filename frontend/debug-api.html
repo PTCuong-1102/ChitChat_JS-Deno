@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 ChitChat API Debug Test</h1>
+    
+    <div id="results"></div>
+    
+    <button onclick="testHealth()">Test Health</button>
+    <button onclick="testAuthTest()">Test Auth Route</button>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testRegister()">Test Register</button>
+    
+    <script>
+        const API_URL = 'http://localhost:8000';
+        const resultsDiv = document.getElementById('results');
+        
+        function addResult(title, success, data) {
+            const div = document.createElement('div');
+            div.className = `test ${success ? 'success' : 'error'}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            resultsDiv.appendChild(div);
+        }
+        
+        async function testHealth() {
+            try {
+                console.log('🔍 Testing health endpoint...');
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+                addResult('✅ Health Check', true, data);
+            } catch (error) {
+                console.error('Health test failed:', error);
+                addResult('❌ Health Check', false, error.message);
+            }
+        }
+        
+        async function testAuthTest() {
+            try {
+                console.log('🔍 Testing auth test endpoint...');
+                const response = await fetch(`${API_URL}/api/auth/test`);
+                const data = await response.json();
+                addResult('✅ Auth Test', true, data);
+            } catch (error) {
+                console.error('Auth test failed:', error);
+                addResult('❌ Auth Test', false, error.message);
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                console.log('🔍 Testing login endpoint...');
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'testuser@example.com',
+                        password: 'password123'
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                addResult('✅ Login Test', true, { user: data.user.user_name, hasToken: !!data.token });
+            } catch (error) {
+                console.error('Login test failed:', error);
+                addResult('❌ Login Test', false, error.message);
+            }
+        }
+        
+        async function testRegister() {
+            try {
+                console.log('🔍 Testing register endpoint...');
+                const randomNum = Math.floor(Math.random() * 10000);
+                const response = await fetch(`${API_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        fullName: `Test User ${randomNum}`,
+                        userName: `testuser${randomNum}`,
+                        email: `test${randomNum}@example.com`,
+                        password: 'password123'
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                addResult('✅ Register Test', true, { user: data.user.user_name, hasToken: !!data.token });
+            } catch (error) {
+                console.error('Register test failed:', error);
+                addResult('❌ Register Test', false, error.message);
+            }
+        }
+        
+        // Auto-run health check on load
+        window.onload = () => {
+            console.log('🚀 Starting API debug tests...');
+            testHealth();
+        };
+    </script>
+</body>
+</html>

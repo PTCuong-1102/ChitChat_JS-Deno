@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image URL Debug Test</title>
+</head>
+<body>
+    <h1>Image URL Debug Test</h1>
+    
+    <div id="test-results"></div>
+    
+    <script>
+        // Test different image URL formats
+        const baseUrl = 'http://127.0.0.1:8000';
+        const testUrls = [
+            '/uploads/profiles/test.jpg',
+            'http://127.0.0.1:8000/uploads/profiles/test.jpg',
+            'http://localhost:8000/uploads/profiles/test.jpg'
+        ];
+        
+        const resultsDiv = document.getElementById('test-results');
+        
+        // Test each URL
+        testUrls.forEach((url, index) => {
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <h3>Test ${index + 1}: ${url}</h3>
+                <img src="${url}" 
+                     style="width: 100px; height: 100px; border: 1px solid #ccc;" 
+                     onload="console.log('✅ Image loaded:', '${url}')"
+                     onerror="console.log('❌ Image failed:', '${url}'); this.style.border='2px solid red';"
+                />
+                <p>URL: <code>${url}</code></p>
+            `;
+            resultsDiv.appendChild(div);
+        });
+        
+        // Test fetch to uploads endpoint
+        async function testUploadsEndpoint() {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/uploads/');
+                console.log('📁 /uploads/ response:', response.status, response.statusText);
+                
+                const response2 = await fetch('http://127.0.0.1:8000/uploads/profiles/');
+                console.log('📁 /uploads/profiles/ response:', response2.status, response2.statusText);
+            } catch (error) {
+                console.error('❌ Fetch error:', error);
+            }
+        }
+        
+        testUploadsEndpoint();
+        
+        // Show localStorage user data
+        const userData = localStorage.getItem('chitchat_user_data');
+        if (userData) {
+            const user = JSON.parse(userData);
+            console.log('👤 Current user data:', user);
+            
+            if (user.avatar) {
+                const avatarDiv = document.createElement('div');
+                avatarDiv.innerHTML = `
+                    <h3>Current User Avatar</h3>
+                    <p>Avatar URL: <code>${user.avatar}</code></p>
+                    <img src="${user.avatar}" 
+                         style="width: 100px; height: 100px; border: 1px solid #ccc;" 
+                         onload="console.log('✅ User avatar loaded:', '${user.avatar}')"
+                         onerror="console.log('❌ User avatar failed:', '${user.avatar}'); this.style.border='2px solid red';"
+                    />
+                `;
+                resultsDiv.appendChild(avatarDiv);
+            }
+        }
+    </script>
+</body>
+</html>
